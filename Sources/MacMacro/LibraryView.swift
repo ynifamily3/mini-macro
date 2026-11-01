@@ -20,6 +20,7 @@ struct LibraryView: View {
     @Environment(\.openWindow) var openWindow
     @State private var selected: UUID?
     @State private var deleting: SavedMacro?
+    @State private var editedMacroID: UUID?
 
     var body: some View {
         NavigationSplitView {
@@ -50,7 +51,16 @@ struct LibraryView: View {
                     description: Text("녹화를 끝내거나 파일을 가져오면 자동으로 추가됩니다."))
             }
         }
-        .toolbar { Button("자동화 편집기") { openWindow(id: "automation") } }
+        .toolbar {
+            Button("새 매크로", systemImage: "plus") { store.recordingEditor = RecordingEditorRequest(id: UUID()) }.disabled(engine.phase.isBusy)
+            Button("자동화 편집기") { openWindow(id: "automation") }
+        }
+        .sheet(item: $store.recordingEditor, onDismiss: {
+            if let id = editedMacroID, store.macros.contains(where: { $0.id == id }) { selected = id }
+            editedMacroID = nil
+        }) { request in
+            RecordingEditorView(macroID: request.id).onAppear { editedMacroID = request.id }
+        }
         .onAppear { if selected == nil { selected = store.macros.first?.id } }
         .onChange(of: store.macros.map(\.id)) { _, ids in if selected == nil || !ids.contains(selected!) { selected = ids.first } }
         .confirmationDialog("매크로를 휴지통으로 옮길까요?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
@@ -89,6 +99,7 @@ private struct MacroLibraryDetail: View {
             }.font(.subheadline).foregroundStyle(.secondary)
             Text("녹화: \(item.recording.createdAt.formatted())").font(.caption).foregroundStyle(.secondary)
             HStack {
+                Button("동작 편집", systemImage: "slider.horizontal.3") { store.recordingEditor = RecordingEditorRequest(id: item.id) }
                 Button("녹화 화면에서 열기") { engine.selectRecording(item.recording); openWindow(id: "main") }
                 Button("파일로 내보내기") { engine.selectRecording(item.recording); engine.exportRecording() }
                 Spacer()

@@ -1,6 +1,6 @@
 cask "mini-macro" do
-  version "0.0.1"
-  sha256 "80470a99ff3e2dfcbb7555e0c8990ffec6aee1125310abec84950e5932fc91a6"
+  version "0.0.2"
+  sha256 "a359be77e3ced294dc46710535b1b5e0cb626b232c9f48e045b34d159b632380"
 
   url "https://github.com/ynifamily3/mini-macro/releases/download/v#{version}/mini-macro-#{version}-universal.dmg"
   name "Mini Macro"

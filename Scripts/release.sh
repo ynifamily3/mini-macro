@@ -4,8 +4,8 @@ cd "${0:A:h:h}"
 
 : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to an existing notarytool Keychain profile.}"
 version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
-work="$PWD/build/release-$version"
-out="$PWD/dist/v$version"
+work="${MACMACRO_BUILD_ROOT:-$PWD/build}/release-$version"
+out="${MACMACRO_DIST_ROOT:-$PWD/dist}/v$version"
 app="$work/Mouse Macro.app"
 archive="mini-macro-$version-universal"
 mkdir -p "$work" "$out"

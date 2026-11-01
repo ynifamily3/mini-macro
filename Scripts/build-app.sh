@@ -41,20 +41,25 @@ if [[ "$distribution" == 1 ]]; then
     fi
 fi
 build_args=(-c release)
+build_root="${MACMACRO_BUILD_ROOT:-$PWD/build}"
+mkdir -p "$build_root"
+if [[ -n "${MACMACRO_SCRATCH_PATH:-}" ]]; then
+    build_args+=(--scratch-path "$MACMACRO_SCRATCH_PATH")
+fi
 if [[ "${MACMACRO_UNIVERSAL:-0}" == 1 ]]; then
     build_args+=(--arch arm64 --arch x86_64)
 fi
 swift build "${build_args[@]}"
 bin_dir="$(swift build "${build_args[@]}" --show-bin-path)"
-app="${MACMACRO_APP_OUTPUT:-$PWD/build/Mouse Macro.app}"
+app="${MACMACRO_APP_OUTPUT:-$build_root/Mouse Macro.app}"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin_dir/MacMacro" "$app/Contents/MacOS/MacMacro"
 cp Resources/Info.plist "$app/Contents/Info.plist"
-if [[ ! -f build/AppIcon.icns || Scripts/MakeIcon.swift -nt build/AppIcon.icns ]]; then
-    swift Scripts/MakeIcon.swift build/AppIcon.iconset
-    iconutil -c icns build/AppIcon.iconset -o build/AppIcon.icns
+if [[ ! -f "$build_root/AppIcon.icns" || Scripts/MakeIcon.swift -nt "$build_root/AppIcon.icns" ]]; then
+    swift Scripts/MakeIcon.swift "$build_root/AppIcon.iconset"
+    iconutil -c icns "$build_root/AppIcon.iconset" -o "$build_root/AppIcon.icns"
 fi
-cp build/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
+cp "$build_root/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 sign_args=(--force --options runtime --sign "$resolved_identity")
 if [[ "$distribution" == 1 ]]; then
     sign_args+=(--timestamp)

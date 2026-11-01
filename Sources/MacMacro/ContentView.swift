@@ -6,6 +6,7 @@ private let ink = Color(red: 0.15, green: 0.16, blue: 0.22)
 
 struct ContentView: View {
     @EnvironmentObject private var engine: MacroEngine
+    @EnvironmentObject private var store: AutomationStore
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -134,6 +135,10 @@ struct ContentView: View {
                 Text("녹화 종료 · 다른 앱에서도 Esc로 저장할 수 있어요.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
+                Button("동작 편집") {
+                    guard let recording = engine.recording, let id = store.addRecording(recording) else { return }
+                    store.recordingEditor = RecordingEditorRequest(id: id); openWindow(id: "library")
+                }.disabled(engine.recording == nil || engine.phase.isBusy)
                 Button("불러오기", action: engine.importRecording).disabled(engine.phase.isBusy)
                 Text("·").foregroundStyle(.tertiary)
                 Button("파일로 저장", action: engine.exportRecording).disabled(engine.recording == nil || engine.phase.isBusy)

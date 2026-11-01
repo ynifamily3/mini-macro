@@ -2,11 +2,14 @@ import AppKit
 import Combine
 import MacroCore
 
+struct RecordingEditorRequest: Identifiable { let id: UUID }
+
 @MainActor
 final class AutomationStore: ObservableObject {
     @Published private(set) var macros: [SavedMacro] = []
     @Published private(set) var workflows: [AutomationWorkflow] = []
     @Published var error: String?
+    @Published var recordingEditor: RecordingEditorRequest?
     private var pendingSaves: [UUID: Task<Void, Never>] = [:]
     let root: URL
 
@@ -86,6 +89,26 @@ final class AutomationStore: ObservableObject {
         var item = macros[i]; item.name = String(name.prefix(100))
         do { try write(item, to: url(for: id, folder: "Macros")); macros[i] = item }
         catch { self.error = error.localizedDescription }
+    }
+
+    /// Preserve the macro ID so automation nodes keep pointing to the edited recording.
+    @discardableResult
+    func saveEditedMacro(_ item: SavedMacro, replacing original: SavedMacro?) throws -> SavedMacro {
+        if let original {
+            guard item.id == original.id, macros.first(where: { $0.id == original.id }) == original else {
+                throw AutomationError.invalid("다른 창에서 이 매크로가 변경되었거나 삭제되었습니다. 편집기를 다시 열어주세요.")
+            }
+        } else if macros.contains(where: { $0.id == item.id }) {
+            throw AutomationError.invalid("같은 매크로가 이미 저장되어 있습니다. 편집기를 다시 열어주세요.")
+        }
+        var value = item
+        value.name = String(value.name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+        guard !value.name.isEmpty else { throw AutomationError.invalid("매크로 이름을 입력해주세요.") }
+        _ = try value.recording.validated()
+        try write(value, to: url(for: value.id, folder: "Macros"))
+        if let index = macros.firstIndex(where: { $0.id == value.id }) { macros[index] = value }
+        else { macros.insert(value, at: 0) }
+        return value
     }
 
     @discardableResult
