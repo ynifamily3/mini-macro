@@ -12,6 +12,12 @@ Homebrew로도 설치할 수 있습니다.
 brew install --cask ynifamily3/tap/mini-macro
 ```
 
+Homebrew가 `untrusted tap` 오류를 표시하면 해당 cask의 신뢰를 등록한 뒤 설치를 다시 실행하세요.
+
+```sh
+brew trust --cask ynifamily3/tap/mini-macro
+```
+
 macOS 14 이상, Apple Silicon 또는 Intel Mac이 필요합니다. 앱과 DMG는 Developer ID로 서명하고 Apple 공증 티켓을 첨부했습니다. `SHA256SUMS.txt`로 다운로드 파일의 체크섬을 확인할 수 있습니다.
 
 ## 소스에서 실행
