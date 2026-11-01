@@ -29,6 +29,7 @@ struct RecordingEditorView: View {
     @State private var validationMessage: String?
     @State private var totalDuration: TimeInterval = 0
     @State private var page = 0
+    @StateObject private var positionOverlay = PositionOverlay()
     private let pageSize = 200
 
     private var dirty: Bool { name != baselineName || edit != baseline }
@@ -62,6 +63,8 @@ struct RecordingEditorView: View {
                             ForEach([RecordingStepKind.down, .up, .drag, .scroll], id: \.self) { kind in Button(kind.label) { add(kind) } }
                         }.fixedSize()
                         Spacer()
+                        Button("화면에서 배치", systemImage: "viewfinder") { placeOnScreen() }
+                            .disabled(positionOverlay.isShowing || edit.positionIndices.isEmpty)
                     }.padding(12)
                     Divider()
                     List(selection: $selected) {
@@ -108,6 +111,7 @@ struct RecordingEditorView: View {
         .preferredColorScheme(.light)
         .interactiveDismissDisabled(dirty)
         .onAppear(perform: load)
+        .onDisappear { positionOverlay.editorDidDisappear() }
         .onChange(of: edit) { _, _ in validate() }
         .confirmationDialog("저장하지 않은 변경사항을 버릴까요?", isPresented: $discard) {
             Button("변경사항 버리고 닫기", role: .destructive) { dismiss() }
@@ -169,6 +173,18 @@ struct RecordingEditorView: View {
 
     private func number(_ label: String, value: Binding<Double>) -> some View {
         RecordingNumberField(label: label, value: value).id("\(selected?.uuidString ?? "")-\(label)")
+    }
+    private func placeOnScreen() {
+        guard engine.beginPositionEditing() else { return }
+        do {
+            try positionOverlay.present(edit: edit, selected: selected) { result, selectedID in
+                engine.endPositionEditing()
+                if let result {
+                    edit = result; selected = selectedID; saved = false
+                    if let index = selectedIndex { page = index / pageSize }
+                }
+            }
+        } catch { engine.endPositionEditing(); self.error = error.localizedDescription }
     }
     private func summary(_ step: RecordingStep) -> String {
         if step.kind == .wait { return "\(step.seconds.formatted())초" }

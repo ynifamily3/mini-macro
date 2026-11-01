@@ -14,6 +14,7 @@ enum MacroPhase: Equatable {
 @MainActor
 final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     @Published private(set) var phase: MacroPhase = .idle
+    @Published private(set) var isPositionEditing = false
     @Published private(set) var recording: MacroRecording?
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var eventCount = 0
@@ -133,7 +134,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     }
 
     func prepareAutomation(_ workflow: AutomationWorkflow, macros: [SavedMacro]) {
-        guard !phase.isBusy else { return }
+        guard !phase.isBusy, !isPositionEditing else { return }
         refreshPermissions()
         do {
             _ = try workflow.validated(availableMacros: Set(macros.map(\.id)))
@@ -192,7 +193,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     }
 
     func prepareRecording() {
-        guard !phase.isBusy else { return }
+        guard !phase.isBusy, !isPositionEditing else { return }
         refreshPermissions()
         guard listenAllowed else {
             error = "시스템 설정 → 개인정보 보호 및 보안 → 입력 모니터링에서 Mouse Macro를 허용해주세요."
@@ -202,7 +203,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     }
 
     func preparePlayback() {
-        guard !phase.isBusy, let recording else { return }
+        guard !phase.isBusy, !isPositionEditing, let recording else { return }
         refreshPermissions()
         guard listenAllowed, postAllowed else {
             error = "재생에는 입력 모니터링과 손쉬운 사용 권한이 모두 필요합니다. 입력 감지를 확인한 뒤에만 재생합니다."
@@ -638,6 +639,12 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
             await Task.yield() // Deliver pending real input even when replay has fallen behind.
         }
     }
+
+    func beginPositionEditing() -> Bool {
+        guard !phase.isBusy, !isPositionEditing else { return false }
+        isPositionEditing = true; return true
+    }
+    func endPositionEditing() { isPositionEditing = false }
 
     func shutdown() {
         stop()
