@@ -41,6 +41,14 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     @Published var recordingMode: RecordingMode = .allEvents {
         didSet { UserDefaults.standard.set(recordingMode.rawValue, forKey: "recordingMode") }
     }
+    @Published var effectsSettings = PlaybackEffectSettings() {
+        didSet {
+            if let data = try? JSONEncoder().encode(effectsSettings) {
+                UserDefaults.standard.set(data, forKey: "playbackEffects.v1")
+            }
+            effectsDisplay.configure(effectsSettings)
+        }
+    }
 
     private var tap: CFMachPort?
     private var tapSource: CFRunLoopSource?
@@ -53,6 +61,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     private var refreshTimer: Timer?
     private var countdown: Task<Void, Never>?
     private let hud = StatusHUD()
+    private let effectsDisplay = PlaybackEffectsDisplay()
     private var lastPermissionCheck: TimeInterval = 0
     private var sleepObservers: [NSObjectProtocol] = []
     private var isStopping = false
@@ -73,6 +82,9 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
         }
         if let savedMode = UserDefaults.standard.string(forKey: "recordingMode"),
            let mode = RecordingMode(rawValue: savedMode) { recordingMode = mode }
+        if let data = UserDefaults.standard.data(forKey: "playbackEffects.v1"),
+           let settings = try? JSONDecoder().decode(PlaybackEffectSettings.self, from: data) { effectsSettings = settings }
+        effectsDisplay.configure(effectsSettings)
         notificationCenter.delegate = self
         if let data = try? Data(contentsOf: cacheURL), data.count < 80_000_000,
            let loaded = try? JSONDecoder().decode(MacroRecording.self, from: data).validated() {
@@ -224,6 +236,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     }
 
     private func beginCountdown(forRecording: Bool) {
+        effectsDisplay.stop()
         // Establish the complete keyboard + mouse listener before allowing playback.
         guard startMonitoring() else { pendingAutomation = nil; isAutomationRunning = false; automationNeedsScreen = false; return }
         elapsed = 0
@@ -259,6 +272,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
                     return
                 }
                 self.eventSource = source
+                self.effectsDisplay.begin(anchor: CGEvent(source: nil)?.location ?? .zero)
                 if let (workflow, macros) = self.pendingAutomation {
                     self.pendingAutomation = nil
                     self.phase = .playing
@@ -396,6 +410,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
             if action.kind == .down { heldButtons.insert(action.button) }
             if action.kind == .up { heldButtons.remove(action.button) }
             for event in events { event.post(tap: .cghidEventTap) }
+            effectsDisplay.posted(action, mode: timeline?.recording.mode ?? .allEvents)
         }
         let newIteration = min(repetitions, (timeline?.iteration ?? 0) + 1)
         if iteration != newIteration { iteration = newIteration }
@@ -405,6 +420,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
     func stop(reason: String = "매크로를 중지했습니다.", notify: Bool = false, completed: Bool = false) {
         guard phase.isBusy, !isStopping else { return }
         isStopping = true
+        if completed { effectsDisplay.finish() } else { effectsDisplay.stop() }
         let wasRecording = phase == .recording
         let wasAutomation = isAutomationRunning
         if wasAutomation, let activeNodeID {
@@ -624,6 +640,7 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
         if action.kind == .down { heldButtons.insert(action.button) }
         if action.kind == .up { heldButtons.remove(action.button) }
         for event in events { event.post(tap: .cghidEventTap) }
+        effectsDisplay.posted(action, mode: mode)
     }
 
     private func playAutomationMacro(_ recording: MacroRecording, repetitions: Int) async throws {
@@ -642,12 +659,19 @@ final class MacroEngine: NSObject, ObservableObject, UNUserNotificationCenterDel
 
     func beginPositionEditing() -> Bool {
         guard !phase.isBusy, !isPositionEditing else { return false }
+        effectsDisplay.stop()
         isPositionEditing = true; return true
     }
     func endPositionEditing() { isPositionEditing = false }
 
+    func previewPlaybackEffects() {
+        guard !phase.isBusy, !isPositionEditing else { return }
+        effectsDisplay.preview()
+    }
+
     func shutdown() {
         stop()
+        effectsDisplay.shutdown()
         refreshTimer?.invalidate()
         for observer in sleepObservers { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
         hud.hide()

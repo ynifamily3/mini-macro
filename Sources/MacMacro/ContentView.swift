@@ -183,6 +183,14 @@ struct ContentView: View {
             .padding(15).frame(maxWidth: .infinity, alignment: .leading)
             .background(accent.opacity(0.055), in: RoundedRectangle(cornerRadius: 12))
 
+            HStack {
+                Toggle("재생 이펙트", isOn: $engine.effectsSettings.enabled)
+                    .toggleStyle(.switch).controlSize(.small).font(.system(size: 12))
+                Spacer()
+                Button("설정 · 미리보기", systemImage: "sparkles") { openWindow(id: "effects") }
+                    .font(.system(size: 11)).buttonStyle(.plain).foregroundStyle(accent)
+            }.disabled(engine.phase.isBusy || engine.isPositionEditing)
+
             if engine.phase == .playing {
                 ProgressView(value: engine.progress).tint(accent)
                 HStack {

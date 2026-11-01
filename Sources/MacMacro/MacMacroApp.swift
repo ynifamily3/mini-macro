@@ -18,6 +18,9 @@ struct MacMacroApp: App {
         Window("자동화 편집기", id: "automation") {
             AutomationEditorView().environmentObject(delegate.engine).environmentObject(delegate.store)
         }.defaultSize(width: 1_340, height: 850)
+        Window("재생 이펙트", id: "effects") {
+            PlaybackEffectsSettingsView().environmentObject(delegate.engine)
+        }.windowResizability(.contentSize)
         MenuBarExtra("Mouse Macro", systemImage: "cursorarrow.motionlines") {
             MenuBarControls().environmentObject(delegate.engine)
         }
@@ -76,6 +79,7 @@ private struct MenuBarControls: View {
         Button("창 열기") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
         Button("매크로 보관함") { openWindow(id: "library") }
         Button("자동화 편집기") { openWindow(id: "automation") }
+        Button("재생 이펙트") { openWindow(id: "effects") }
         Button("종료") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }
 }
@@ -92,6 +96,7 @@ private struct MacroCommands: Commands {
             Divider()
             Button("매크로 보관함") { openWindow(id: "library") }
             Button("자동화 편집기") { openWindow(id: "automation") }
+            Button("재생 이펙트") { openWindow(id: "effects") }
             Divider()
             Button("중지") { engine.stop() }.keyboardShortcut(".", modifiers: .command)
         }
