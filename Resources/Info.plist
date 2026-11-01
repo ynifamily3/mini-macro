@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleExecutable</key><string>MacMacro</string>
+    <key>CFBundleIdentifier</key><string>ing.miel.mousemacro</string>
+    <key>CFBundleName</key><string>Mouse Macro</string>
+    <key>CFBundleDisplayName</key><string>Mouse Macro</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.0.1</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSScreenCaptureUsageDescription</key><string>화면에서 등록한 이미지를 찾아 자동화의 IF 조건을 판단합니다. 캡처는 이 Mac에서만 처리합니다.</string>
+    <key>UTExportedTypeDeclarations</key><array><dict>
+        <key>UTTypeIdentifier</key><string>ing.miel.mousemacro.recording</string>
+        <key>UTTypeDescription</key><string>Mouse Macro 녹화</string>
+        <key>UTTypeConformsTo</key><array><string>public.json</string></array>
+        <key>UTTypeTagSpecification</key><dict>
+            <key>public.filename-extension</key><array><string>mousemacro</string></array>
+        </dict>
+    </dict></array>
+</dict></plist>

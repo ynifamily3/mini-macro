@@ -1,0 +1,12 @@
+.build/
+build/
+.swiftpm/
+.DS_Store
+*.mousemacro
+.codesign-identity
+dist/
+.env
+.env.*
+*.p12
+*.p8
+*.mobileprovision
